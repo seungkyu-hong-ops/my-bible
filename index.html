@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="나의 성경">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#7a1f2b">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<title>나의 성경</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f0e6; --paper:#fffdf8; --ink:#2a2420; --muted:#7b6f63; --line:#e3d8c7;
+  --accent:#7a1f2b; --accent-soft:#f2e3e1; --gold:#a8843a; --gold-soft:#f3ead6;
+  --serif:'Noto Serif KR',serif; --sans:'IBM Plex Sans KR',system-ui,sans-serif;
+  --qs:26px; --left:430px;
+  --c1:#b23a48; --c2:#c58b2a; --c3:#3f7a57; --c4:#3c6097;
+  --st:env(safe-area-inset-top,0px); --sb:env(safe-area-inset-bottom,0px);
+}
+[data-theme=dark]{
+  --bg:#16130f; --paper:#201b16; --ink:#ece4d6; --muted:#a29581; --line:#3a3229;
+  --accent:#df9196; --accent-soft:#3b2527; --gold:#d2b26c; --gold-soft:#332b1b;
+  --c1:#e07a85; --c2:#e0b45e; --c3:#7fc095; --c4:#86a6dc;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.55;overscroll-behavior:none}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--accent)}
+.app{display:grid;grid-template-columns:var(--left) minmax(0,1fr);height:100vh;height:100dvh}
+/* 왼쪽 */
+.left{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--line);background:var(--bg)}
+.lhead{padding:calc(14px + var(--st)) 18px 10px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.brand b{font-family:var(--serif);font-size:21px;color:var(--accent)}
+.tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:10px}
+.tabs a{display:flex;align-items:center;justify-content:center;min-height:42px;border-radius:9px;text-decoration:none;color:var(--muted);font-weight:500;font-size:15px}
+.tabs a.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.lbody{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:18px 18px calc(30px + var(--sb))}
+form.jump{display:flex;gap:8px}
+input.t,select.t,textarea.t{border:1px solid var(--line);border-radius:10px;background:var(--paper);padding:9px 12px;min-height:44px;width:100%}
+textarea.t{resize:vertical;line-height:1.6}
+.btn{border:1px solid var(--line);background:var(--paper);min-height:44px;padding:0 16px;border-radius:10px;cursor:pointer;white-space:nowrap;text-decoration:none;color:var(--ink);display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+[data-theme=dark] .btn.pri{color:#1c1210}
+.btn.sm{min-height:38px;padding:0 12px;font-size:14px;border-radius:8px}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--muted)}
+.btn:disabled{opacity:.4}
+.view{display:none}.view.on{display:block}
+h2,h3{font-family:var(--serif);margin:0}
+h2{font-size:21px}
+h3{font-size:16px;margin-bottom:10px}
+.muted{color:var(--muted)}.small{font-size:14px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sp{flex:1}
+.vh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.notice{padding:10px 14px;border-radius:10px;background:var(--accent-soft);color:var(--accent);margin-bottom:14px;display:none;font-size:14px}
+.notice.on{display:block}
+/* 오늘 */
+.quote{position:relative;padding:34px 26px 24px;border-radius:16px;background:var(--paper);border:1px solid var(--line)}
+.quote::before{content:'“';position:absolute;left:14px;top:-10px;font-family:var(--serif);font-size:90px;color:var(--gold);opacity:.35;line-height:1}
+.quote .date{font-size:13px;color:var(--gold);font-weight:600;margin-bottom:12px}
+.quote .q{font-family:var(--serif);font-size:var(--qs);line-height:1.75;font-weight:600;word-break:keep-all;white-space:pre-wrap}
+.quote .src{margin-top:16px;font-family:var(--serif);color:var(--muted)}
+.quote .acts{margin-top:18px}
+.stack{display:grid;gap:14px;margin-top:14px}
+/* 목록 */
+.grp{margin-bottom:22px}
+.grp-h{display:flex;align-items:baseline;gap:8px;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--line)}
+.books{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.book{background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:11px 13px;cursor:pointer;min-height:58px}
+.book .nm{font-family:var(--serif);font-weight:600;font-size:15px;line-height:1.35}
+.book .meta{font-size:12px;color:var(--muted);margin-top:2px}
+.book.open{grid-column:1/-1;cursor:default;border-color:var(--accent)}
+.book.cur{border-color:var(--gold)}
+.chs{display:grid;grid-template-columns:repeat(auto-fill,minmax(46px,1fr));gap:6px;margin-top:12px}
+.ch{position:relative;display:flex;align-items:center;justify-content:center;min-height:44px;border:1px solid var(--line);background:var(--bg);border-radius:8px;color:var(--ink);font-size:15px;cursor:pointer}
+.ch.bm{border-color:var(--accent);color:var(--accent);font-weight:600}
+.ch.ps::after{content:'';position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:3px;background:var(--gold)}
+.ch.now{background:var(--accent);border-color:var(--accent);color:#fff}
+[data-theme=dark] .ch.now{color:#1c1210}
+.legend{display:flex;gap:12px;font-size:12px;color:var(--muted);align-items:center}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;vertical-align:-1px;margin-right:4px}
+/* 항목 */
+.item{display:flex;gap:12px;align-items:flex-start;padding:14px 0;border-bottom:1px solid var(--line)}
+.item:last-child{border-bottom:0}
+.dot{width:11px;height:11px;border-radius:6px;flex:0 0 11px;margin-top:8px}
+.item .ref{font-family:var(--serif);font-weight:700;font-size:17px;cursor:pointer}
+.item .memo{margin-top:2px;white-space:pre-wrap;font-size:15px}
+.acts2{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.pcard{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+.pcard .txt{font-family:var(--serif);font-size:17px;line-height:1.8;white-space:pre-wrap;word-break:keep-all}
+.pcard .ref{font-family:var(--serif);color:var(--muted);cursor:pointer}
+.tag{display:inline-flex;align-items:center;min-height:30px;padding:0 11px;border-radius:15px;background:var(--gold-soft);color:var(--gold);font-size:13px;border:1px solid transparent;cursor:pointer}
+.tag.on{border-color:var(--gold);font-weight:600}
+.pin{font-size:12px;color:var(--accent);font-weight:600}
+.empty{padding:26px 0;color:var(--muted);text-align:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;background:var(--paper);min-height:38px;padding:0 12px;cursor:pointer;color:var(--muted)}
+.seg button.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.colors{display:flex;gap:10px}
+.colors label{cursor:pointer}
+.colors input{display:none}
+.colors span{display:block;width:36px;height:36px;border-radius:18px;border:3px solid transparent}
+.colors input:checked+span{border-color:var(--ink)}
+/* 오른쪽: 본문 */
+.right{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--paper)}
+.vbar{display:flex;align-items:center;gap:8px;padding:calc(10px + var(--st)) 14px 10px;border-bottom:1px solid var(--line);background:var(--bg);flex-wrap:wrap}
+.vbar .ttl{font-family:var(--serif);font-weight:700;font-size:19px;margin:0 6px}
+.frame{flex:1;position:relative;min-height:0}
+.frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff}
+.vempty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:30px;text-align:center;color:var(--muted)}
+.vempty .big{font-family:var(--serif);font-size:24px;color:var(--ink)}
+#closeV{display:none}
+/* 세로 화면 */
+@media (max-width:899px){
+  .app{grid-template-columns:1fr}
+  .right{position:fixed;inset:0;z-index:20;transform:translateX(100%);transition:transform .22s ease}
+  body.viewing .right{transform:none}
+  #closeV{display:inline-flex}
+  .books{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+}
+/* 모달 */
+.modal{position:fixed;inset:0;background:rgba(20,14,10,.42);display:none;align-items:center;justify-content:center;z-index:40;padding:20px}
+.modal.on{display:flex}
+.modal .card{width:min(600px,100%);max-height:92vh;overflow:auto}
+.fgrid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px}
+.fl{display:grid;gap:4px;font-size:13px;color:var(--muted)}
+@media (max-width:600px){.fgrid{grid-template-columns:1fr 1fr}}
+.toast{position:fixed;left:50%;bottom:calc(24px + var(--sb));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:20px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:50}
+.toast.on{opacity:.92}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ===== 왼쪽 ===== -->
+  <section class="left">
+    <div class="lhead">
+      <div class="brand"><b>나의 성경</b><span class="sp"></span><button class="btn sm ghost" id="resumeBtn" onclick="resume()"></button></div>
+      <form class="jump" id="jumpForm" autocomplete="off">
+        <input class="t" id="jumpIn" placeholder="바로가기  예: 요한 3,16 · 시편 23" enterkeyhint="go">
+        <button class="btn pri">열기</button>
+      </form>
+      <nav class="tabs">
+        <a href="#today" data-v="today">오늘</a>
+        <a href="#library" data-v="library">목록</a>
+        <a href="#bookmarks" data-v="bookmarks">책갈피</a>
+        <a href="#passages" data-v="passages">구절</a>
+        <a href="#prefs" data-v="prefs">설정</a>
+      </nav>
+    </div>
+    <div class="lbody" id="lbody">
+      <div class="notice" id="notice"></div>
+
+      <section class="view" id="v-today">
+        <div class="quote" id="quote"></div>
+        <div class="stack">
+          <div class="card"><h3>최근 책갈피</h3><div id="recentB"></div></div>
+          <div class="card"><h3>기록 현황</h3><div id="stats"></div></div>
+        </div>
+      </section>
+
+      <section class="view" id="v-library">
+        <div class="vh"><h2>성경 목록</h2><span class="sp"></span>
+          <div class="legend"><span><i style="border:2px solid var(--accent)"></i>책갈피</span><span><i style="background:var(--gold);border-radius:6px"></i>구절</span></div></div>
+        <div id="lib"></div>
+      </section>
+
+      <section class="view" id="v-bookmarks">
+        <div class="vh"><h2>책갈피</h2><span class="sp"></span><button class="btn sm pri" onclick="openBm()">추가</button></div>
+        <div class="row" style="margin-bottom:12px">
+          <div class="seg" id="bmSort"><button data-s="canon" class="on">성경 순서</button><button data-s="recent">최신순</button></div>
+          <div class="seg" id="bmColor"></div>
+        </div>
+        <div class="card" id="bmList"></div>
+      </section>
+
+      <section class="view" id="v-passages">
+        <div class="vh"><h2>구절 모음</h2><span class="sp"></span><button class="btn sm pri" onclick="openPs()">담기</button></div>
+        <div class="row" id="tagBar" style="margin-bottom:12px"></div>
+        <div id="psList"></div>
+      </section>
+
+      <section class="view" id="v-prefs">
+        <div class="vh"><h2>설정·백업</h2></div>
+        <div class="stack" style="margin-top:0">
+          <div class="card">
+            <h3>화면</h3>
+            <div class="row" style="margin-bottom:12px"><span>화면 색</span><span class="sp"></span>
+              <div class="seg" id="themeSeg"><button data-t="light">밝게</button><button data-t="dark">어둡게</button></div></div>
+            <div class="row" style="margin-bottom:12px"><span>왼쪽 영역 너비</span><span class="sp"></span>
+              <div class="seg" id="widthSeg"><button data-w="360">좁게</button><button data-w="430">보통</button><button data-w="520">넓게</button></div></div>
+            <div class="row"><span>오늘의 문장 글자</span><span class="sp"></span>
+              <button class="btn sm" id="qsDown">작게</button><span id="qsVal" class="muted small" style="width:42px;text-align:center"></span><button class="btn sm" id="qsUp">크게</button></div>
+          </div>
+          <div class="card">
+            <h3>기록 백업</h3>
+            <p class="small muted" style="margin-top:0">기록은 이 아이패드 안에만 저장됩니다. 가끔 백업을 복사해 메모 앱 등에 보관하십시오. 예전 claude.ai 버전의 백업도 복원할 수 있습니다.</p>
+            <div class="row"><button class="btn" id="bkCopy">백업 복사</button><span class="small muted" id="bkMsg"></span></div>
+            <textarea class="t" id="bkText" rows="4" style="margin-top:10px" placeholder="복원할 백업 JSON 붙여넣기"></textarea>
+            <button class="btn" id="bkRestore" style="margin-top:10px">복원</button>
+          </div>
+          <div class="card small muted">
+            본문: 한국천주교주교회의 「성경」 공식 사이트(bible.cbck.or.kr)를 그대로 표시합니다. 이 앱은 본문을 저장하지 않습니다.
+          </div>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <!-- ===== 오른쪽: 공식 본문 ===== -->
+  <section class="right" id="right">
+    <div class="vbar">
+      <button class="btn sm" id="closeV" onclick="closeViewer()">목록으로</button>
+      <button class="btn sm" id="prevCh" aria-label="이전 장">이전</button>
+      <span class="ttl" id="vTitle">공식 본문</span>
+      <button class="btn sm" id="nextCh" aria-label="다음 장">다음</button>
+      <span class="sp"></span>
+      <button class="btn sm" id="vBm">책갈피</button>
+      <button class="btn sm" id="vPs">구절 담기</button>
+      <a class="btn sm ghost" id="vOut" target="_blank" rel="noopener">새 창</a>
+    </div>
+    <div class="frame" id="frame">
+      <div class="vempty" id="vEmpty">
+        <div class="big">왼쪽에서 장을 고르면<br>여기에 공식 본문이 열립니다</div>
+        <div>바로가기 창에 "요한 3,16"처럼 입력해도 됩니다.</div>
+        <button class="btn pri" onclick="resume()" id="vResume">창세기 1장 열기</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- 책갈피 입력 -->
+<div class="modal" id="mBm"><form class="card" id="fBm">
+  <h3 id="fBmT">책갈피 추가</h3>
+  <div class="fgrid">
+    <label class="fl">책<select class="t" id="bmBook"></select></label>
+    <label class="fl">장<input class="t" id="bmCh" type="number" inputmode="numeric" min="1"></label>
+    <label class="fl">절 (선택)<input class="t" id="bmV" type="number" inputmode="numeric" min="1"></label>
+    <span></span>
+  </div>
+  <label class="fl" style="margin-top:12px">메모 (선택)<textarea class="t" id="bmMemo" rows="3"></textarea></label>
+  <div class="fl" style="margin-top:12px">색<div class="colors" id="bmColors"></div></div>
+  <div class="row" style="margin-top:16px"><span class="small" id="bmErr" style="color:var(--accent)"></span><span class="sp"></span>
+    <button type="button" class="btn" onclick="closeM('mBm')">취소</button><button class="btn pri">저장</button></div>
+</form></div>
+
+<!-- 구절 입력 -->
+<div class="modal" id="mPs"><form class="card" id="fPs">
+  <h3 id="fPsT">구절 담기</h3>
+  <div class="fgrid">
+    <label class="fl">책<select class="t" id="psBook"></select></label>
+    <label class="fl">장<input class="t" id="psCh" type="number" inputmode="numeric" min="1"></label>
+    <label class="fl">시작 절<input class="t" id="psV1" type="number" inputmode="numeric" min="1"></label>
+    <label class="fl">끝 절 (선택)<input class="t" id="psV2" type="number" inputmode="numeric" min="1"></label>
+  </div>
+  <p class="small muted" style="margin:10px 0 0">오른쪽 본문에서 구절을 길게 눌러 복사한 뒤 아래에 붙여넣으십시오.</p>
+  <label class="fl" style="margin-top:8px">구절<textarea class="t" id="psText" rows="5" style="font-family:var(--serif)"></textarea></label>
+  <label class="fl" style="margin-top:12px">태그 (쉼표로 구분, 선택)<input class="t" id="psTags" placeholder="예: 위로, 감사, 대림"></label>
+  <div class="row" style="margin-top:16px"><span class="small" id="psErr" style="color:var(--accent)"></span><span class="sp"></span>
+    <button type="button" class="btn" onclick="closeM('mPs')">취소</button><button class="btn pri">저장</button></div>
+</form></div>
+
+<div class="modal" id="mCf"><div class="card">
+  <h3 id="cfT"></h3><p class="muted" id="cfB"></p>
+  <div class="row"><span class="sp"></span><button class="btn" onclick="closeM('mCf')">취소</button><button class="btn pri" id="cfY">확인</button></div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== 73권: [한글 약어, 이름, 장 수, 분류, 공식 사이트 약어] — bible.cbck.or.kr/knb 목록 기준 =====
+const RAW=[
+['창','창세기',50,'오경','Gn'],['탈','탈출기',40,'오경','Ex'],['레','레위기',27,'오경','Lv'],['민','민수기',36,'오경','Nm'],['신','신명기',34,'오경','Dt'],
+['여호','여호수아기',24,'역사서','Jos'],['판관','판관기',21,'역사서','Jgs'],['룻','룻기',4,'역사서','Ru'],['1사무','사무엘기 상권',31,'역사서','1Sm'],['2사무','사무엘기 하권',24,'역사서','2Sm'],
+['1열왕','열왕기 상권',22,'역사서','1Kgs'],['2열왕','열왕기 하권',25,'역사서','2Kgs'],['1역대','역대기 상권',29,'역사서','1Chr'],['2역대','역대기 하권',36,'역사서','2Chr'],
+['에즈','에즈라기',10,'역사서','Ezr'],['느헤','느헤미야기',13,'역사서','Neh'],['토빗','토빗기',14,'역사서','Tb'],['유딧','유딧기',16,'역사서','Jdt'],['에스','에스테르기',10,'역사서','Est'],
+['1마카','마카베오기 상권',16,'역사서','1Mc'],['2마카','마카베오기 하권',15,'역사서','2Mc'],
+['욥','욥기',42,'시서와 지혜서','Jb'],['시편','시편',150,'시서와 지혜서','Ps'],['잠언','잠언',31,'시서와 지혜서','Prv'],['코헬','코헬렛',12,'시서와 지혜서','Eccl'],
+['아가','아가',8,'시서와 지혜서','Sng'],['지혜','지혜서',19,'시서와 지혜서','Wis'],['집회','집회서',51,'시서와 지혜서','Sir'],
+['이사','이사야서',66,'예언서','Is'],['예레','예레미야서',52,'예언서','Jer'],['애가','애가',5,'예언서','Lam'],['바룩','바룩서',6,'예언서','Bar'],['에제','에제키엘서',48,'예언서','Ez'],
+['다니','다니엘서',14,'예언서','Dn'],['호세','호세아서',14,'예언서','Hos'],['요엘','요엘서',4,'예언서','Jl'],['아모','아모스서',9,'예언서','Am'],['오바','오바드야서',1,'예언서','Ob'],
+['요나','요나서',4,'예언서','Jon'],['미카','미카서',7,'예언서','Mi'],['나훔','나훔서',3,'예언서','Na'],['하바','하바쿡서',3,'예언서','Hb'],['스바','스바니야서',3,'예언서','Zep'],
+['하까','하까이서',2,'예언서','Hg'],['즈카','즈카르야서',14,'예언서','Zec'],['말라','말라키서',3,'예언서','Mal'],
+['마태','마태오 복음서',28,'복음서','Mt'],['마르','마르코 복음서',16,'복음서','Mk'],['루카','루카 복음서',24,'복음서','Lk'],['요한','요한 복음서',21,'복음서','Jn'],
+['사도','사도행전',28,'사도행전','Acts'],
+['로마','로마 신자들에게 보낸 서간',16,'바오로 서간','Rom'],['1코린','코린토 신자들에게 보낸 첫째 서간',16,'바오로 서간','1Cor'],['2코린','코린토 신자들에게 보낸 둘째 서간',13,'바오로 서간','2Cor'],
+['갈라','갈라티아 신자들에게 보낸 서간',6,'바오로 서간','Gal'],['에페','에페소 신자들에게 보낸 서간',6,'바오로 서간','Eph'],['필리','필리피 신자들에게 보낸 서간',4,'바오로 서간','Phil'],
+['콜로','콜로새 신자들에게 보낸 서간',4,'바오로 서간','Col'],['1테살','테살로니카 신자들에게 보낸 첫째 서간',5,'바오로 서간','1Thes'],['2테살','테살로니카 신자들에게 보낸 둘째 서간',3,'바오로 서간','2Thes'],
+['1티모','티모테오에게 보낸 첫째 서간',6,'바오로 서간','1Tm'],['2티모','티모테오에게 보낸 둘째 서간',4,'바오로 서간','2Tm'],['티토','티토에게 보낸 서간',3,'바오로 서간','Ti'],['필레','필레몬에게 보낸 서간',1,'바오로 서간','Phlm'],
+['히브','히브리인들에게 보낸 서간',13,'히브리서·가톨릭 서간','Heb'],['야고','야고보 서간',5,'히브리서·가톨릭 서간','Jas'],['1베드','베드로의 첫째 서간',5,'히브리서·가톨릭 서간','1Pt'],
+['2베드','베드로의 둘째 서간',3,'히브리서·가톨릭 서간','2Pt'],['1요한','요한의 첫째 서간',5,'히브리서·가톨릭 서간','1Jn'],['2요한','요한의 둘째 서간',1,'히브리서·가톨릭 서간','2Jn'],
+['3요한','요한의 셋째 서간',1,'히브리서·가톨릭 서간','3Jn'],['유다','유다 서간',1,'히브리서·가톨릭 서간','Jude'],
+['묵시','요한 묵시록',22,'요한 묵시록','Rv']
+];
+const BOOKS=RAW.map((r,i)=>({code:r[4],abbr:r[0],name:r[1],chs:r[2],grp:r[3],nt:i>=46,idx:i}));
+const BY=Object.fromEntries(BOOKS.map(b=>[b.code,b]));
+const LOOK={};
+BOOKS.forEach(b=>{[b.abbr,b.name,b.name.replace(/(서|기)$/,''),b.code].forEach(k=>{LOOK[k.replace(/\s/g,'').toLowerCase()]=b.code;});});
+Object.assign(LOOK,{'마태오':'Mt','마르코':'Mk','루카':'Lk','요한복음':'Jn','묵시록':'Rv','시':'Ps','행전':'Acts','코헬렛':'Eccl'});
+const findBook=s=>s?LOOK[s.replace(/[\s.]/g,'').toLowerCase()]||null:null;
+const urlOf=(b,c)=>'https://bible.cbck.or.kr/Knb/'+b+'/'+c;
+const COLORS=['c1','c2','c3','c4'];
+
+// ===== 상태 (이 기기의 localStorage) =====
+const K='mybible3:';
+const LS={get(k){try{return JSON.parse(localStorage.getItem(K+k));}catch(e){return null;}},set(k,v){try{localStorage.setItem(K+k,JSON.stringify(v));return true;}catch(e){return false;}}};
+let S=Object.assign({settings:{theme:'light',qs:26,left:430},pin:null,last:null},LS.get('S')||{});
+let BM=LS.get('BM')||{}, PS=LS.get('PS')||{};
+let cur=null; // 현재 보는 장 {b,c}
+function persist(){const ok=LS.set('S',S)&&LS.set('BM',BM)&&LS.set('PS',PS);if(!ok)notice('이 기기에 저장하지 못했습니다. 사파리 개인정보 보호 모드인지 확인하십시오.');}
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+const fullRef=(b,c,v1,v2)=>BY[b].name+' '+c+'장'+(v1?' '+v1+(v2&&v2!==v1?'-'+v2:'')+'절':'');
+const shortRef=(b,c,v1,v2)=>BY[b].abbr+' '+c+(v1?','+v1+(v2&&v2!==v1?'-'+v2:''):'');
+const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+function notice(m){$('notice').textContent=m||'';$('notice').classList.toggle('on',!!m);}
+let tT=null;function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(tT);tT=setTimeout(()=>t.classList.remove('on'),1800);}
+
+// ===== 본문 보기 =====
+const narrow=()=>matchMedia('(max-width:899px)').matches;
+function show(b,c){
+  c=Math.min(Math.max(1,c),BY[b].chs);
+  cur={b,c};S.last={b,c};persist();
+  let f=$('frame').querySelector('iframe');
+  if(!f){f=document.createElement('iframe');f.title='공식 본문';f.setAttribute('referrerpolicy','no-referrer');$('frame').appendChild(f);}
+  $('vEmpty').style.display='none';
+  f.src=urlOf(b,c);
+  $('vTitle').textContent=BY[b].name+' '+c+'장';
+  $('vOut').href=urlOf(b,c);
+  const bi=BY[b].idx;
+  $('prevCh').disabled=bi===0&&c===1;$('nextCh').disabled=bi===BOOKS.length-1&&c===BY[b].chs;
+  if(narrow())document.body.classList.add('viewing');
+  updResume();
+  if($('v-library').classList.contains('on'))markNow();
+}
+function step(d){
+  if(!cur)return;let b=BY[cur.b],c=cur.c+d;
+  if(c<1){if(b.idx===0)return;b=BOOKS[b.idx-1];c=b.chs;}
+  else if(c>b.chs){if(b.idx===BOOKS.length-1)return;b=BOOKS[b.idx+1];c=1;}
+  show(b.code,c);
+}
+$('prevCh').onclick=()=>step(-1);$('nextCh').onclick=()=>step(1);
+$('vBm').onclick=()=>cur&&openBm(null,{book:cur.b,ch:cur.c});
+$('vPs').onclick=()=>cur&&openPs(null,{book:cur.b,ch:cur.c});
+function closeViewer(){document.body.classList.remove('viewing');}
+function resume(){const l=S.last||{b:'Gn',c:1};show(l.b,l.c);}
+function updResume(){
+  const l=S.last;$('resumeBtn').textContent=l?'이어 보기: '+shortRef(l.b,l.c):'';
+  $('resumeBtn').style.display=l&&(narrow()||!cur)?'':'none';
+  $('vResume').textContent=l?fullRef(l.b,l.c)+' 이어 보기':'창세기 1장 열기';
+}
+addEventListener('resize',updResume);
+
+// ===== 바로가기 =====
+function parseRef(s){
+  const m=s.trim().match(/^(.*?)\s*(\d+)(?:\s*장)?(?:\s*[,:]\s*(\d+)(?:\s*[-~]\s*(\d+))?)?(?:\s*절)?$/);
+  if(!m)return null;const b=findBook(m[1]);if(!b)return null;
+  const c=+m[2];if(c<1||c>BY[b].chs)return {b,err:BY[b].name+'은(는) '+BY[b].chs+'장까지 있습니다.'};
+  return {b,c,v1:m[3]?+m[3]:null,v2:m[4]?+m[4]:null};
+}
+$('jumpForm').onsubmit=e=>{
+  e.preventDefault();const r=parseRef($('jumpIn').value);
+  if(!r){toast('책 이름을 찾지 못했습니다. 예: 요한 3,16');return;}
+  if(r.err){toast(r.err);return;}
+  $('jumpIn').value='';$('jumpIn').blur();show(r.b,r.c);
+  if(r.v1)toast(r.v1+'절은 본문에서 찾아 주십시오');
+};
+
+// ===== 화면 전환 =====
+const VIEWS=['today','library','bookmarks','passages','prefs'];
+function route(){
+  let v=(location.hash||'#today').slice(1);if(!VIEWS.includes(v))v='today';
+  VIEWS.forEach(x=>$('v-'+x).classList.toggle('on',x===v));
+  document.querySelectorAll('.tabs a').forEach(a=>a.classList.toggle('on',a.dataset.v===v));
+  ({today:renderToday,library:renderLib,bookmarks:renderBm,passages:renderPs,prefs:renderPrefs})[v]();
+}
+addEventListener('hashchange',()=>{route();$('lbody').scrollTop=0;});
+const refresh=()=>route();
+function go(v){if(location.hash==='#'+v)route();else location.hash=v;}
+
+// ===== 오늘의 문장 =====
+function hashStr(s){let h=2166136261;for(const ch of s){h^=ch.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
+const psSorted=()=>Object.entries(PS).sort((a,b)=>a[0]<b[0]?-1:1);
+function todaysPassage(){
+  const l=psSorted();if(!l.length)return null;const t=today();
+  if(S.pin&&S.pin.date===t&&PS[S.pin.id])return [S.pin.id,PS[S.pin.id]];
+  return l[hashStr(t)%l.length];
+}
+function nextQuote(){const l=psSorted();if(l.length<2)return;const c=todaysPassage();const i=l.findIndex(x=>x[0]===c[0]);S.pin={date:today(),id:l[(i+1)%l.length][0]};persist();renderToday();}
+function pinQuote(id){S.pin={date:today(),id};persist();toast('오늘의 문장으로 정했습니다');renderPs();}
+function renderToday(){
+  const d=new Date(),days=['일','월','화','수','목','금','토'];
+  const dl=(d.getMonth()+1)+'월 '+d.getDate()+'일 '+days[d.getDay()]+'요일';
+  const p=todaysPassage();
+  if(!p){
+    $('quote').innerHTML='<div class="date">'+dl+'</div><div class="q" style="font-size:20px">오늘의 문장은 구절 모음에서 하루 하나씩 고릅니다.</div>'+
+      '<div class="src">본문을 읽다가 마음에 남은 구절을 "구절 담기"로 모아 두십시오.</div><div class="acts row"><a class="btn pri" href="#library">성경 목록</a></div>';
+  }else{
+    const [id,x]=p;
+    $('quote').innerHTML='<div class="date">'+dl+' · 오늘의 문장</div><div class="q">'+esc(x.text)+'</div><div class="src">— '+esc(fullRef(x.book,x.ch,x.v1,x.v2))+'</div>'+
+      '<div class="acts row"><button class="btn" onclick="show(\''+x.book+'\','+x.ch+')">본문 보기</button>'+(psSorted().length>1?'<button class="btn" onclick="nextQuote()">다른 문장</button>':'')+'</div>';
+  }
+  const rb=Object.entries(BM).sort((a,b)=>(b[1].created||'').localeCompare(a[1].created||'')).slice(0,5);
+  $('recentB').innerHTML=rb.length?rb.map(([id,x])=>bmRow(id,x,true)).join(''):'<div class="empty">책갈피가 없습니다.</div>';
+  const bks=new Set([...Object.values(BM).map(x=>x.book),...Object.values(PS).map(x=>x.book)]);
+  $('stats').innerHTML='<div class="row" style="gap:26px">'+st(Object.keys(BM).length,'책갈피')+st(Object.keys(PS).length,'구절')+st(bks.size,'기록한 책')+'</div>';
+}
+const st=(n,l)=>'<div><div style="font-family:var(--serif);font-size:30px;font-weight:700">'+n+'</div><div class="small muted">'+l+'</div></div>';
+
+// ===== 성경 목록 =====
+let openBook=null;
+function renderLib(){
+  const bmCh=new Set(Object.values(BM).map(x=>x.book+'/'+x.ch)),psCh=new Set(Object.values(PS).map(x=>x.book+'/'+x.ch));
+  const groups=[];BOOKS.forEach(b=>{let g=groups.find(x=>x.n===b.grp);if(!g){g={n:b.grp,nt:b.nt,bs:[]};groups.push(g);}g.bs.push(b);});
+  let h='',lastNt=null;
+  groups.forEach(g=>{
+    if(g.nt!==lastNt){h+='<h2 style="margin:'+(lastNt===null?'0':'8px')+' 0 12px">'+(g.nt?'신약':'구약')+'</h2>';lastNt=g.nt;}
+    h+='<div class="grp"><div class="grp-h"><h3 style="margin:0">'+g.n+'</h3><span class="small muted">'+g.bs.length+'권</span></div><div class="books">';
+    g.bs.forEach(b=>{
+      const op=openBook===b.code;
+      h+='<div class="book'+(op?' open':'')+(cur&&cur.b===b.code&&!op?' cur':'')+'" data-b="'+b.code+'"><div class="nm">'+esc(b.name)+'</div><div class="meta">'+esc(b.abbr)+' · '+b.chs+'장</div>';
+      if(op){
+        h+='<div class="chs">';
+        for(let c=1;c<=b.chs;c++){const k=b.code+'/'+c;h+='<div class="ch'+(bmCh.has(k)?' bm':'')+(psCh.has(k)?' ps':'')+(cur&&cur.b===b.code&&cur.c===c?' now':'')+'" data-c="'+c+'">'+c+'</div>';}
+        h+='</div><div class="row" style="margin-top:10px"><span class="sp"></span><button class="btn sm ghost" data-close="1">접기</button></div>';
+      }
+      h+='</div>';
+    });
+    h+='</div></div>';
+  });
+  $('lib').innerHTML=h;
+}
+function markNow(){document.querySelectorAll('#lib .ch').forEach(el=>{const bk=el.closest('.book');el.classList.toggle('now',!!cur&&bk.dataset.b===cur.b&&+el.dataset.c===cur.c);});}
+$('lib').addEventListener('click',e=>{
+  const bk=e.target.closest('.book');if(!bk)return;
+  if(e.target.closest('[data-close]')){openBook=null;renderLib();return;}
+  const ch=e.target.closest('.ch');if(ch){show(bk.dataset.b,+ch.dataset.c);return;}
+  if(bk.classList.contains('open'))return;
+  openBook=bk.dataset.b;renderLib();
+  const el=document.querySelector('.book.open');if(el)el.scrollIntoView({block:'nearest',behavior:'smooth'});
+});
+
+// ===== 책갈피 =====
+let bmSort='canon',bmFilter=null,editBm=null;
+const cmp=(a,b)=>BY[a.book].idx-BY[b.book].idx||a.ch-b.ch||(a.v||a.v1||0)-(b.v||b.v1||0);
+function bmRow(id,x,compact){
+  return '<div class="item"><span class="dot" style="background:var(--'+(x.color||'c1')+')"></span><div style="min-width:0;flex:1">'+
+    '<div class="ref" onclick="show(\''+x.book+'\','+x.ch+')">'+esc(fullRef(x.book,x.ch,x.v))+'</div>'+
+    (x.memo?'<div class="memo">'+esc(x.memo)+'</div>':'')+
+    (compact?'':'<div class="acts2"><button class="btn sm" onclick="show(\''+x.book+'\','+x.ch+')">본문</button><button class="btn sm" onclick="openPs(null,{book:\''+x.book+'\',ch:'+x.ch+',v1:'+(x.v||'null')+'})">구절 담기</button><button class="btn sm" onclick="openBm(\''+id+'\')">수정</button><button class="btn sm ghost" onclick="delBm(\''+id+'\')">삭제</button></div>')+
+    '</div></div>';
+}
+function renderBm(){
+  $('bmColor').innerHTML='<button class="'+(bmFilter?'':'on')+'" data-c="">전체</button>'+COLORS.map(c=>'<button class="'+(bmFilter===c?'on':'')+'" data-c="'+c+'"><span class="dot" style="display:inline-block;margin:0;background:var(--'+c+')"></span></button>').join('');
+  document.querySelectorAll('#bmSort button').forEach(b=>b.classList.toggle('on',b.dataset.s===bmSort));
+  let l=Object.entries(BM).filter(([,x])=>!bmFilter||x.color===bmFilter);
+  l.sort(bmSort==='canon'?(a,b)=>cmp(a[1],b[1]):(a,b)=>(b[1].created||'').localeCompare(a[1].created||''));
+  $('bmList').innerHTML=l.length?l.map(([id,x])=>bmRow(id,x)).join(''):'<div class="empty">책갈피가 없습니다. 본문 위의 "책갈피" 버튼으로 추가할 수 있습니다.</div>';
+}
+$('bmSort').onclick=e=>{const b=e.target.closest('button');if(b){bmSort=b.dataset.s;renderBm();}};
+$('bmColor').onclick=e=>{const b=e.target.closest('button');if(b){bmFilter=b.dataset.c||null;renderBm();}};
+const bookOptions=sel=>BOOKS.map(b=>'<option value="'+b.code+'"'+(b.code===sel?' selected':'')+'>'+esc(b.name)+'</option>').join('');
+$('bmColors').innerHTML=COLORS.map(c=>'<label><input type="radio" name="bmc" value="'+c+'"><span style="background:var(--'+c+')"></span></label>').join('');
+function openBm(id,pre){
+  editBm=id||null;const x=id?BM[id]:Object.assign({book:cur?cur.b:'Gn',ch:cur?cur.c:1,v:null,memo:'',color:'c1'},pre||{});
+  $('fBmT').textContent=id?'책갈피 수정':'책갈피 추가';
+  $('bmBook').innerHTML=bookOptions(x.book);$('bmCh').value=x.ch||1;$('bmV').value=x.v||'';$('bmMemo').value=x.memo||'';
+  document.querySelector('input[name=bmc][value='+(x.color||'c1')+']').checked=true;$('bmErr').textContent='';
+  openM('mBm');
+}
+$('fBm').onsubmit=e=>{
+  e.preventDefault();const b=$('bmBook').value,c=+$('bmCh').value,v=$('bmV').value?+$('bmV').value:null;
+  if(!(c>=1&&c<=BY[b].chs)){$('bmErr').textContent=BY[b].name+'은(는) 1~'+BY[b].chs+'장입니다.';return;}
+  if(v!==null&&!(v>=1&&v<=200)){$('bmErr').textContent='절 번호를 확인하십시오.';return;}
+  const id=editBm||newId();
+  BM[id]={book:b,ch:c,v,memo:$('bmMemo').value.trim(),color:document.querySelector('input[name=bmc]:checked').value,created:editBm?BM[id].created:new Date().toISOString()};
+  persist();closeM('mBm');toast('책갈피를 저장했습니다');refresh();
+};
+function delBm(id){confirmBox('책갈피 삭제',fullRef(BM[id].book,BM[id].ch,BM[id].v)+' 책갈피를 지웁니다.',()=>{delete BM[id];persist();refresh();});}
+
+// ===== 구절 모음 =====
+let tagFilter=null,editPs=null;
+function renderPs(){
+  const tags={};Object.values(PS).forEach(x=>(x.tags||[]).forEach(t=>tags[t]=(tags[t]||0)+1));
+  const tk=Object.keys(tags).sort();if(tagFilter&&!tags[tagFilter])tagFilter=null;
+  $('tagBar').innerHTML=tk.length?'<span class="tag'+(tagFilter?'':' on')+'" data-t="">전체 '+Object.keys(PS).length+'</span>'+tk.map(t=>'<span class="tag'+(tagFilter===t?' on':'')+'" data-t="'+esc(t)+'">'+esc(t)+' '+tags[t]+'</span>').join(''):'';
+  const c=todaysPassage();
+  const l=Object.entries(PS).filter(([,x])=>!tagFilter||(x.tags||[]).includes(tagFilter)).sort((a,b)=>cmp(a[1],b[1]));
+  $('psList').innerHTML=l.length?l.map(([id,x])=>'<div class="pcard">'+(c&&c[0]===id?'<span class="pin">오늘의 문장</span>':'')+
+    '<div class="txt">'+esc(x.text)+'</div><div class="ref" onclick="show(\''+x.book+'\','+x.ch+')">— '+esc(fullRef(x.book,x.ch,x.v1,x.v2))+'</div>'+
+    ((x.tags||[]).length?'<div class="row">'+x.tags.map(t=>'<span class="tag">'+esc(t)+'</span>').join('')+'</div>':'')+
+    '<div class="row"><button class="btn sm" onclick="show(\''+x.book+'\','+x.ch+')">본문</button><button class="btn sm" onclick="pinQuote(\''+id+'\')">오늘의 문장으로</button><span class="sp"></span>'+
+    '<button class="btn sm" onclick="openPs(\''+id+'\')">수정</button><button class="btn sm ghost" onclick="delPs(\''+id+'\')">삭제</button></div></div>').join('')
+    :'<div class="card empty">담은 구절이 없습니다. 본문 위의 "구절 담기" 버튼으로 저장하십시오.</div>';
+}
+$('tagBar').onclick=e=>{const t=e.target.closest('.tag');if(t){tagFilter=t.dataset.t||null;renderPs();}};
+function openPs(id,pre){
+  editPs=id||null;const x=id?PS[id]:Object.assign({book:cur?cur.b:'Gn',ch:cur?cur.c:1,v1:null,v2:null,text:'',tags:[]},pre||{});
+  $('fPsT').textContent=id?'구절 수정':'구절 담기';
+  $('psBook').innerHTML=bookOptions(x.book);$('psCh').value=x.ch||1;$('psV1').value=x.v1||'';$('psV2').value=x.v2||'';
+  $('psText').value=x.text||'';$('psTags').value=(x.tags||[]).join(', ');$('psErr').textContent='';
+  openM('mPs');
+}
+$('fPs').onsubmit=e=>{
+  e.preventDefault();const b=$('psBook').value,c=+$('psCh').value,v1=$('psV1').value?+$('psV1').value:null,v2=$('psV2').value?+$('psV2').value:null;
+  const text=$('psText').value.trim();
+  if(!(c>=1&&c<=BY[b].chs)){$('psErr').textContent=BY[b].name+'은(는) 1~'+BY[b].chs+'장입니다.';return;}
+  if(!v1){$('psErr').textContent='시작 절을 입력하십시오.';return;}
+  if(v2&&v2<v1){$('psErr').textContent='끝 절이 시작 절보다 앞입니다.';return;}
+  if(!text){$('psErr').textContent='구절을 붙여넣으십시오.';return;}
+  const tags=[...new Set($('psTags').value.split(/[,，]/).map(s=>s.trim()).filter(Boolean))];
+  const id=editPs||newId();
+  PS[id]={book:b,ch:c,v1,v2:v2&&v2!==v1?v2:null,text,tags,created:editPs?PS[id].created:new Date().toISOString()};
+  persist();closeM('mPs');toast('구절을 담았습니다');refresh();
+};
+function delPs(id){confirmBox('구절 삭제',fullRef(PS[id].book,PS[id].ch,PS[id].v1,PS[id].v2)+' 구절을 지웁니다.',()=>{delete PS[id];persist();refresh();});}
+
+// ===== 설정·백업 =====
+function renderPrefs(){
+  document.querySelectorAll('#themeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.t===S.settings.theme));
+  document.querySelectorAll('#widthSeg button').forEach(b=>b.classList.toggle('on',+b.dataset.w===S.settings.left));
+  $('qsVal').textContent=S.settings.qs+'px';
+}
+$('themeSeg').onclick=e=>{const b=e.target.closest('button');if(b){S.settings.theme=b.dataset.t;apply();persist();renderPrefs();}};
+$('widthSeg').onclick=e=>{const b=e.target.closest('button');if(b){S.settings.left=+b.dataset.w;apply();persist();renderPrefs();}};
+$('qsUp').onclick=()=>{S.settings.qs=Math.min(40,S.settings.qs+2);apply();persist();renderPrefs();};
+$('qsDown').onclick=()=>{S.settings.qs=Math.max(18,S.settings.qs-2);apply();persist();renderPrefs();};
+function apply(){
+  S.settings=Object.assign({theme:'light',qs:26,left:430},S.settings||{});
+  const r=document.documentElement;r.dataset.theme=S.settings.theme==='dark'?'dark':'light';
+  r.style.setProperty('--qs',S.settings.qs+'px');r.style.setProperty('--left',S.settings.left+'px');
+}
+$('bkCopy').onclick=async()=>{
+  const j=JSON.stringify({app:'mybible',v:3,exported:new Date().toISOString(),settings:S.settings,bookmarks:BM,passages:PS});
+  try{await navigator.clipboard.writeText(j);$('bkMsg').textContent='클립보드에 복사했습니다.';}
+  catch(e){$('bkText').value=j;$('bkText').select();$('bkMsg').textContent='아래 칸의 내용을 직접 복사하십시오.';}
+};
+$('bkRestore').onclick=()=>{
+  let j;try{j=JSON.parse($('bkText').value);}catch(e){$('bkMsg').textContent='JSON 형식이 아닙니다.';return;}
+  if(j.app!=='mybible'||!j.bookmarks){$('bkMsg').textContent='이 앱의 백업이 아닙니다.';return;}
+  confirmBox('백업 복원','현재 책갈피와 구절 모음을 백업 내용으로 바꿉니다.',()=>{
+    BM=j.bookmarks||{};PS=j.passages||{};
+    // 예전 버전 책 코드(b01 등) 변환
+    const fix=x=>{if(x&&/^b\d\d$/.test(x.book)){const b=BOOKS[+x.book.slice(1)-1];if(b)x.book=b.code;}return x;};
+    Object.values(BM).forEach(fix);Object.values(PS).forEach(fix);
+    for(const o of [BM,PS])for(const k of Object.keys(o))if(!BY[o[k].book])delete o[k];
+    if(j.settings)S.settings=Object.assign(S.settings,{theme:j.settings.theme||S.settings.theme});
+    apply();persist();$('bkText').value='';$('bkMsg').textContent='복원했습니다.';refresh();
+  });
+};
+
+// ===== 모달 =====
+function openM(id){$(id).classList.add('on');}
+function closeM(id){$(id).classList.remove('on');}
+document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('on');}));
+function confirmBox(t,b,yes){$('cfT').textContent=t;$('cfB').textContent=b;$('cfY').onclick=()=>{closeM('mCf');yes();};openM('mCf');}
+
+// 저장 공간 유지 요청 (지원 시)
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist();}catch(e){}
+apply();route();updResume();
+if(!narrow()&&S.last)show(S.last.b,S.last.c);
+</script>
+</body>
+</html>
