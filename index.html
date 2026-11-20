@@ -200,6 +200,10 @@ h3{font-size:16px;margin-bottom:10px}
               <div class="seg" id="cropSeg"><button data-c="1">숨김</button><button data-c="0">표시</button></div></div>
             <div class="row" style="margin-bottom:12px"><span>숨김 높이 조정</span><span class="sp"></span>
               <button class="btn sm" id="cropDown">덜 가리기</button><span id="cropVal" class="muted small" style="width:42px;text-align:center"></span><button class="btn sm" id="cropUp">더 가리기</button></div>
+            <div class="row" style="margin-bottom:12px"><span>오늘의 문장 고르기</span><span class="sp"></span>
+              <div class="seg" id="qmodeSeg"><button data-q="daily">하루 고정</button><button data-q="random">열 때마다 무작위</button></div></div>
+            <div class="row" style="margin-bottom:12px"><span>읽어 주기 속도</span><span class="sp"></span>
+              <div class="seg" id="rateSeg"><button data-r="0.8">느리게</button><button data-r="1">보통</button><button data-r="1.2">빠르게</button></div></div>
             <div class="row"><span>오늘의 문장 글자</span><span class="sp"></span>
               <button class="btn sm" id="qsDown">작게</button><span id="qsVal" class="muted small" style="width:42px;text-align:center"></span><button class="btn sm" id="qsUp">크게</button></div>
           </div>
@@ -395,11 +399,43 @@ function hashStr(s){let h=2166136261;for(const ch of s){h^=ch.charCodeAt(0);h=Ma
 const psSorted=()=>Object.entries(PS).sort((a,b)=>a[0]<b[0]?-1:1);
 function todaysPassage(){
   const l=psSorted();if(!l.length)return null;const t=today();
+  if(S.settings.qmode==='random'){
+    if(!sessionPick||!PS[sessionPick])sessionPick=l[Math.floor(Math.random()*l.length)][0];
+    return [sessionPick,PS[sessionPick]];
+  }
   if(S.pin&&S.pin.date===t&&PS[S.pin.id])return [S.pin.id,PS[S.pin.id]];
   return l[hashStr(t)%l.length];
 }
-function nextQuote(){const l=psSorted();if(l.length<2)return;const c=todaysPassage();const i=l.findIndex(x=>x[0]===c[0]);S.pin={date:today(),id:l[(i+1)%l.length][0]};persist();renderToday();}
-function pinQuote(id){S.pin={date:today(),id};persist();toast('오늘의 문장으로 정했습니다');renderPs();}
+let sessionPick=null; // '열 때마다 무작위' 모드에서 이번 실행에 뽑힌 구절
+function randomId(except){const l=psSorted().map(x=>x[0]).filter(id=>id!==except);return l.length?l[Math.floor(Math.random()*l.length)]:except;}
+function nextQuote(){
+  const c=todaysPassage();if(!c||psSorted().length<2)return;
+  const id=randomId(c[0]);
+  if(S.settings.qmode==='random')sessionPick=id;else{S.pin={date:today(),id};persist();}
+  renderToday();
+}
+// 무작위 장 펼치기: 1,328장 가운데 하나를 고르게 뽑음
+function randomChapter(){
+  let n=Math.floor(Math.random()*BOOKS.reduce((a,b)=>a+b.chs,0));
+  for(const b of BOOKS){if(n<b.chs){show(b.code,n+1);toast(BY[b.code].name+' '+(n+1)+'장');return;}n-=b.chs;}
+}
+// ===== 소리로 읽기 (기기 내장 음성) =====
+const TTS='speechSynthesis' in window;
+let speakingId=null;
+function koVoice(){const vs=speechSynthesis.getVoices().filter(v=>/^ko/i.test(v.lang));return vs.find(v=>/yuna|유나|premium|enhanced/i.test(v.name))||vs[0]||null;}
+function speak(id,text){
+  if(!TTS){toast('이 기기는 음성 읽기를 지원하지 않습니다');return;}
+  const was=speakingId;speechSynthesis.cancel();speakingId=null;updSpeakBtns();
+  if(was===id)return; // 같은 버튼을 다시 누르면 정지
+  const u=new SpeechSynthesisUtterance(text);u.lang='ko-KR';const v=koVoice();if(v)u.voice=v;
+  u.rate=S.settings.rate||1;
+  u.onend=u.onerror=()=>{if(speakingId===id){speakingId=null;updSpeakBtns();}};
+  speakingId=id;updSpeakBtns();speechSynthesis.speak(u);
+}
+function speakPs(id){const x=PS[id];if(x)speak(id,x.text+'. '+fullRef(x.book,x.ch,x.v1,x.v2)+'.');}
+function updSpeakBtns(){document.querySelectorAll('[data-say]').forEach(b=>b.textContent=b.dataset.say===speakingId?'정지':'듣기');}
+if(TTS&&speechSynthesis.onvoiceschanged!==undefined)speechSynthesis.onvoiceschanged=()=>{};
+function pinQuote(id){S.pin={date:today(),id};sessionPick=id;persist();toast('오늘의 문장으로 정했습니다');renderPs();}
 function renderToday(){
   const d=new Date(),days=['일','월','화','수','목','금','토'];
   const dl=(d.getMonth()+1)+'월 '+d.getDate()+'일 '+days[d.getDay()]+'요일';
@@ -410,8 +446,11 @@ function renderToday(){
   }else{
     const [id,x]=p;
     $('quote').innerHTML='<div class="date">'+dl+' · 오늘의 문장</div><div class="q">'+esc(x.text)+'</div><div class="src">— '+esc(fullRef(x.book,x.ch,x.v1,x.v2))+'</div>'+
-      '<div class="acts row"><button class="btn" onclick="show(\''+x.book+'\','+x.ch+')">본문 보기</button>'+(psSorted().length>1?'<button class="btn" onclick="nextQuote()">다른 문장</button>':'')+'</div>';
+      '<div class="acts row">'+(TTS?'<button class="btn pri" data-say="'+id+'" onclick="speakPs(\''+id+'\')">듣기</button>':'')+
+      '<button class="btn" onclick="show(\''+x.book+'\','+x.ch+')">본문 보기</button>'+(psSorted().length>1?'<button class="btn" onclick="nextQuote()">다른 문장</button>':'')+'</div>';
   }
+  if(!$('randBox'))$('quote').insertAdjacentHTML('afterend','<div class="card row" id="randBox" style="margin-top:14px"><div><b style="font-family:var(--serif)">무작위 장 펼치기</b><div class="small muted">성경 1,328장 가운데 한 장을 골라 오른쪽에 엽니다.</div></div><span class="sp"></span><button class="btn" onclick="randomChapter()">펼치기</button></div>');
+  updSpeakBtns();
   const rb=Object.entries(BM).sort((a,b)=>(b[1].created||'').localeCompare(a[1].created||'')).slice(0,5);
   $('recentB').innerHTML=rb.length?rb.map(([id,x])=>bmRow(id,x,true)).join(''):'<div class="empty">책갈피가 없습니다.</div>';
   const bks=new Set([...Object.values(BM).map(x=>x.book),...Object.values(PS).map(x=>x.book)]);
@@ -501,9 +540,10 @@ function renderPs(){
   $('psList').innerHTML=l.length?l.map(([id,x])=>'<div class="pcard">'+(c&&c[0]===id?'<span class="pin">오늘의 문장</span>':'')+
     '<div class="txt">'+esc(x.text)+'</div><div class="ref" onclick="show(\''+x.book+'\','+x.ch+')">— '+esc(fullRef(x.book,x.ch,x.v1,x.v2))+'</div>'+
     ((x.tags||[]).length?'<div class="row">'+x.tags.map(t=>'<span class="tag">'+esc(t)+'</span>').join('')+'</div>':'')+
-    '<div class="row"><button class="btn sm" onclick="show(\''+x.book+'\','+x.ch+')">본문</button><button class="btn sm" onclick="pinQuote(\''+id+'\')">오늘의 문장으로</button><span class="sp"></span>'+
+    '<div class="row">'+(TTS?'<button class="btn sm" data-say="'+id+'" onclick="speakPs(\''+id+'\')">듣기</button>':'')+'<button class="btn sm" onclick="show(\''+x.book+'\','+x.ch+')">본문</button><button class="btn sm" onclick="pinQuote(\''+id+'\')">오늘의 문장으로</button><span class="sp"></span>'+
     '<button class="btn sm" onclick="openPs(\''+id+'\')">수정</button><button class="btn sm ghost" onclick="delPs(\''+id+'\')">삭제</button></div></div>').join('')
     :'<div class="card empty">담은 구절이 없습니다. 본문 위의 "구절 담기" 버튼으로 저장하십시오.</div>';
+  updSpeakBtns();
 }
 $('tagBar').onclick=e=>{const t=e.target.closest('.tag');if(t){tagFilter=t.dataset.t||null;renderPs();}};
 function openPs(id,pre){
@@ -529,8 +569,14 @@ function delPs(id){confirmBox('구절 삭제',fullRef(PS[id].book,PS[id].ch,PS[i
 
 // ===== 설정·백업 =====
 // 공식 화면 위쪽(메뉴·역본 선택·장 바로가기)을 잘라서 본문부터 보이게 함.
-// 2026-11 측정값: 화면 폭 740px 이상이면 장 제목이 위에서 547px, 미만이면 483px에 위치.
-function cropBase(){const w=$('frame').clientWidth||800;return w>=740?541:477;}
+// 2026-11 측정값(장 제목 위치): 폭 740 미만 483px, 740~1280 547px, 1300 이상 617px.
+// 시편은 역본 선택 칸이 한 줄 더 생겨 폭 800 이하에서 44px 더 내려감.
+function cropBase(){
+  const w=$('frame').clientWidth||800;
+  let y=w>1285?611:w>=740?541:477;
+  if(cur&&cur.b==='Ps'&&w<815)y+=44;
+  return y;
+}
 function applyCrop(){
   const on=S.settings.crop!==false, px=on?Math.max(0,cropBase()+(S.settings.cropAdj||0)):0;
   $('frame').style.setProperty('--crop',px+'px');
@@ -540,7 +586,11 @@ addEventListener('resize',applyCrop);
 $('cropSeg').onclick=e=>{const b=e.target.closest('button');if(b){S.settings.crop=b.dataset.c==='1';applyCrop();persist();renderPrefs();}};
 $('cropUp').onclick=()=>{S.settings.cropAdj=Math.min(300,(S.settings.cropAdj||0)+20);applyCrop();persist();};
 $('cropDown').onclick=()=>{S.settings.cropAdj=Math.max(-300,(S.settings.cropAdj||0)-20);applyCrop();persist();};
+$('qmodeSeg').onclick=e=>{const b=e.target.closest('button');if(b){S.settings.qmode=b.dataset.q;sessionPick=null;persist();renderPrefs();}};
+$('rateSeg').onclick=e=>{const b=e.target.closest('button');if(b){S.settings.rate=+b.dataset.r;persist();renderPrefs();if(TTS)speak('test','속도를 확인합니다. 주님은 나의 목자.');}};
 function renderPrefs(){
+  document.querySelectorAll('#qmodeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.q===(S.settings.qmode||'daily')));
+  document.querySelectorAll('#rateSeg button').forEach(b=>b.classList.toggle('on',+b.dataset.r===(S.settings.rate||1)));
   document.querySelectorAll('#cropSeg button').forEach(b=>b.classList.toggle('on',(b.dataset.c==='1')===(S.settings.crop!==false)));
   applyCrop();
   document.querySelectorAll('#themeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.t===S.settings.theme));
